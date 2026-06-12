@@ -1,0 +1,17 @@
+{
+  "name": "distributed-api-gateway",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "install:all": "npm i --prefix gateway && npm i --prefix backends && npm i --prefix benchmarks",
+    "dev:backends": "concurrently \"cd backends && PORT=3001 INSTANCE_ID=backend-1 npx ts-node src/server.ts\" \"cd backends && PORT=3002 INSTANCE_ID=backend-2 npx ts-node src/server.ts\" \"cd backends && PORT=3003 INSTANCE_ID=backend-3 npx ts-node src/server.ts\"",
+    "dev:gateway": "cd gateway && npm run dev",
+    "dev": "concurrently \"npm run dev:backends\" \"npm run dev:gateway\"",
+    "bench": "cd benchmarks && npx ts-node src/load-test.ts",
+    "docker:up": "docker compose up --build",
+    "docker:down": "docker compose down"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  }
+}

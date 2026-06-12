@@ -1,0 +1,115 @@
+version: '3.9'
+
+# One command to bring up the full stack:
+#   docker compose up --build
+#
+# All services share `gateway-net`. Inside the network, backends are reachable
+# by their service name; the BACKENDS env var on the gateway uses those names.
+
+services:
+
+  # ---------------------------------------------------------------------------
+  # Redis — backing store for the sliding-window rate limiter
+  # ---------------------------------------------------------------------------
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    networks:
+      - gateway-net
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  # ---------------------------------------------------------------------------
+  # Backend instances — same image, different INSTANCE_ID / external ports
+  # ---------------------------------------------------------------------------
+  backend1:
+    build:
+      context: ./backends
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    environment:
+      PORT: "3001"
+      INSTANCE_ID: "backend-1"
+      ERROR_RATE: "0.05"
+      MIN_LATENCY: "10"
+      MAX_LATENCY: "100"
+    ports:
+      - "3001:3001"
+    networks:
+      - gateway-net
+
+  backend2:
+    build:
+      context: ./backends
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    environment:
+      PORT: "3001"
+      INSTANCE_ID: "backend-2"
+      ERROR_RATE: "0.05"
+      MIN_LATENCY: "10"
+      MAX_LATENCY: "150"   # slightly higher latency — good for least-connections demo
+    ports:
+      - "3002:3001"
+    networks:
+      - gateway-net
+
+  backend3:
+    build:
+      context: ./backends
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    environment:
+      PORT: "3001"
+      INSTANCE_ID: "backend-3"
+      ERROR_RATE: "0.08"
+      MIN_LATENCY: "20"
+      MAX_LATENCY: "80"
+    ports:
+      - "3003:3001"
+    networks:
+      - gateway-net
+
+  # ---------------------------------------------------------------------------
+  # API Gateway
+  # ---------------------------------------------------------------------------
+  gateway:
+    build:
+      context: ./gateway
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    environment:
+      PORT: "3000"
+      # Internal Docker DNS resolves service names to container IPs
+      BACKENDS: "http://backend1:3001,http://backend2:3001,http://backend3:3001"
+      LB_STRATEGY: "round-robin"          # or: least-connections
+      RATE_LIMIT_ENABLED: "true"
+      RATE_LIMIT_WINDOW_MS: "60000"       # 1-minute sliding window
+      RATE_LIMIT_MAX: "100"               # 100 requests per minute per IP
+      RATE_LIMIT_KEY_BY: "ip"             # or: api-key
+      HEALTH_CHECK_INTERVAL_MS: "10000"
+      HEALTH_CHECK_TIMEOUT_MS: "3000"
+      REDIS_HOST: "redis"
+      REDIS_PORT: "6379"
+    ports:
+      - "3000:3000"
+    depends_on:
+      redis:
+        condition: service_healthy
+      backend1:
+        condition: service_started
+      backend2:
+        condition: service_started
+      backend3:
+        condition: service_started
+    networks:
+      - gateway-net
+
+networks:
+  gateway-net:
+    driver: bridge

@@ -1,0 +1,17 @@
+{
+  "name": "api-gateway-benchmarks",
+  "version": "1.0.0",
+  "scripts": {
+    "test": "ts-node src/load-test.ts",
+    "test:local": "ts-node src/load-test.ts http://localhost:3000 /api/test"
+  },
+  "dependencies": {
+    "autocannon": "^7.14.0"
+  },
+  "devDependencies": {
+    "@types/autocannon": "^7.9.0",
+    "@types/node": "^20.11.5",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.3.3"
+  }
+}
