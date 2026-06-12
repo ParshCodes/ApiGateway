@@ -440,27 +440,6 @@ Percentiles are computed on demand when `/metrics` is hit: copy the filled porti
 
 ---
 
-## 💼 Interview Notes
-
-This project is designed to generate deep technical conversations. Key questions it answers well:
-
-> *"Walk me through your rate limiting implementation."*
-— Explain sorted-set sliding window vs. fixed-window counters, then the TOCTOU problem and why Lua solves it atomically.
-
-> *"How does your load balancer decide where to send traffic?"*
-— Explain both strategies, the strategy pattern, and why `proxyRes` (not `res.finish`) is the right place to decrement `activeConnections`.
-
-> *"What happens when a backend goes down?"*
-— Explain optimistic start, first-failure removal, and re-admission on recovery.
-
-> *"How do you compute p99 latency without an external library?"*
-— Explain the circular buffer approach: O(1) write, bounded memory, sorted on read.
-
-> *"How would you scale this gateway horizontally?"*
-— Rate limiter already shares state via Redis, so scaling is just adding gateway instances behind an L4 load balancer. Load balancer state is in-process — you'd move it to Redis too for true multi-instance consistency.
-
-<br/>
-
 ---
 
 <div align="center">
